@@ -56,19 +56,103 @@ def parse_skill_blocks(reply: str) -> list[tuple[str, str]]:
 
 
 def curate_skills(results_dir="results", source_condition="baseline", out_dir=None, model=None, max_skills: int = 3) -> list[Path]:
-    """Đọc các lần chạy của TÁC VỤ HỌC (role == "learn") trong `source_condition`, nhờ LLM viết skill, ghi file.
+    import json
+    from lab.tasks import ROOT
+    from lab.model import make_model
 
-    Các bước: nạp run.json + trace.md -> (nếu không có check nào thất bại: in cảnh báo và trả về [] mà KHÔNG gọi LLM)
-    -> dựng prompt -> model.invoke(prompt) -> parse_skill_blocks -> validate_skill(text, expected_name=name)
-    -> ghi `<out_dir>/<name>/SKILL.md`. Mặc định `out_dir` = <gốc lab>/skills/auto (dùng `ROOT` từ lab.tasks).
-    Giữ tối đa `max_skills` skill hợp lệ; skill không hợp lệ bị bỏ qua.
-    Prompt chứa, với mỗi check thất bại, TÊN và trường `detail` (lời nhận xét của bot đánh giá: phát biểu quy tắc bị vi phạm)
-    cùng phần cuối của vết (trace). Với tác vụ học, `detail` chỉ phát biểu quy tắc, không chứa đáp án.
-    Tuyệt đối KHÔNG đưa dữ liệu của tác vụ đánh giá (role == "eval") vào prompt.
-    model mặc định: make_model() (lab.model).
-    Trả về: danh sách đường dẫn SKILL.md đã ghi.
-    """
-    raise NotImplementedError("TODO: cài đặt curate_skills (xem guides/pseudocode/04_curator.md)")
+    if out_dir is None:
+        out_dir = ROOT / "skills" / "auto"
+    else:
+        out_dir = Path(out_dir)
+
+    runs = []
+    source_dir = Path(results_dir) / source_condition
+    if source_dir.exists():
+        for task_dir in source_dir.iterdir():
+            if not task_dir.is_dir():
+                continue
+            run_json_path = task_dir / "run.json"
+            if not run_json_path.exists():
+                continue
+
+            try:
+                with open(run_json_path, "r", encoding="utf-8") as f:
+                    r = json.load(f)
+            except Exception:
+                continue
+
+            if r.get("role") != "learn":
+                continue
+
+            failed = [(c["name"], c.get("detail", "")) for c in r.get("checks", []) if not c.get("passed", False)]
+            if not failed:
+                continue
+
+            trace_path = task_dir / "trace.md"
+            trace_content = ""
+            if trace_path.exists():
+                trace_content = trace_path.read_text(encoding="utf-8")
+                if len(trace_content) > 6000:
+                    trace_content = "..." + trace_content[-6000:]
+
+            runs.append({
+                "task": r.get("task"),
+                "failed": failed,
+                "trace": trace_content
+            })
+
+    if not runs:
+        print("Cảnh báo: không có check thất bại ở tác vụ học")
+        return []
+
+    prompt_runs = ""
+    for run in runs:
+        prompt_runs += f"\n--- Task: {run['task']} ---\n"
+        prompt_runs += "Failed checks:\n"
+        for name, detail in run['failed']:
+            prompt_runs += f"- {name}: {detail}\n"
+        prompt_runs += f"Trace:\n{run['trace']}\n"
+
+    prompt = f"""Bạn viết SKILL cho một tác tử lập trình và phân tích dữ liệu.
+Dưới đây là các check thất bại (tên và nhận xét của bot đánh giá) và vết của các lần chạy.
+Hãy tìm các lỗi QUY TRÌNH chung (không phải đáp án cụ thể) và viết tối đa {max_skills} skill ngắn
+giúp tránh các lỗi đó trên tác vụ MỚI cùng loại.
+
+Quy tắc:
+- Skill phải tổng quát: không nêu id tác vụ, không nêu tên tệp riêng của một tác vụ, không nêu đáp án hay con số.
+- Mỗi skill có frontmatter YAML gồm `name` (chữ thường, gạch ngang) và `description` (một câu: DÙNG KHI NÀO),
+  sau đó tối đa 40 dòng chỉ dẫn mệnh lệnh (danh sách kiểm tra - checklist - hoạt động tốt).
+- Định dạng đầu ra, đúng từng ký tự:
+=== SKILL: <name> ===
+---
+name: <name>
+description: <khi nào dùng>
+---
+<nội dung>
+=== END ===
+
+{prompt_runs}
+"""
+
+    if model is None:
+        model = make_model()
+
+    reply = model.invoke(prompt).content
+
+    written = []
+    for name, text in parse_skill_blocks(reply):
+        if len(written) >= max_skills:
+            break
+        if validate_skill(text, expected_name=name):
+            continue
+
+        skill_dir = out_dir / name
+        skill_dir.mkdir(parents=True, exist_ok=True)
+        skill_file = skill_dir / "SKILL.md"
+        skill_file.write_text(text, encoding="utf-8")
+        written.append(skill_file)
+
+    return written
 
 
 if __name__ == "__main__":
