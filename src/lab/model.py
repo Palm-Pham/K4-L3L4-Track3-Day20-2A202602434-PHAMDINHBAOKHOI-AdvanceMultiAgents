@@ -15,6 +15,10 @@ def make_model():
     
     if key:
         from langchain_openai import ChatOpenAI
-        return ChatOpenAI(api_key=key, model=model_name, temperature=temperature, timeout=120)
+        kwargs = {"api_key": key, "model": model_name, "timeout": 120}
+        # Some models don't support temperature
+        if "o1" not in model_name and "gpt-6" not in model_name:
+            kwargs["temperature"] = temperature
+        return ChatOpenAI(**kwargs)
         
     return init_chat_model(os.getenv("LAB_MODEL", "deepseek:deepseek-chat"), temperature=temperature)
