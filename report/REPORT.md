@@ -127,3 +127,16 @@ Thí nghiệm cho thấy cơ chế tự sinh kỹ năng (skills-auto) mang lại
 - Lệnh đã chạy (theo thứ tự):
 - Thử thách mở rộng (nếu có): hướng chọn, kết quả, nhận xét.
 - Ghi chú khác:
+
+### Thử thách 6d. Subagent có skill
+
+**Thiết lập:** 
+Bổ sung `mode = "subagents-skills"` vào `src/lab/agent.py` để các subagent cũng được cung cấp đường dẫn `/skills/` và prompt yêu cầu đọc kỹ SKILL.md. Cấu hình này được chạy trên tất cả 6 tác vụ để so sánh với `subagents` thông thường và `skills-auto`.
+
+**Kết quả:**
+- **Điểm đánh giá (eval)** của `subagents-skills` đạt **0.63**, cao nhất trong tất cả các điều kiện (vượt baseline 0.60, skills-auto 0.62 và cứu vớt sự thảm hại của subagents thường 0.43).
+- **Thống kê house rules**: Khác với `subagents` (0/12 house rules), `subagents-skills` đạt được 1/12 house rules trên tập eval, chứng tỏ subagent có đọc và áp dụng (một phần) các quy ước định dạng ẩn từ skill.
+- **Chi phí Token**: Cực kỳ khổng lồ. Trung bình **217,105 token** mỗi lần chạy (gấp 5 lần baseline và 2.5 lần skills-auto). Cá biệt có tác vụ `code-learn` đã chạm trần đệ quy (Recursion Limit = 40) và ngốn hơn 500k token nhưng vẫn chưa thoát được vòng lặp.
+
+**Nhận xét:**
+Việc trang bị kỹ năng (skills) cho subagents thực sự cải thiện chất lượng công việc (tăng điểm kĩ thuật lên tuyệt đối 18/18 và vớt lại điểm quy ước). Subagent đỡ bị "lạc lối" hơn khi có bộ nguyên tắc rõ ràng. Tuy nhiên, sự kết hợp giữa mô hình đa tác tử và việc đọc skill liên tục khiến chi phí token bùng nổ, không khả thi để ứng dụng thực tế nếu không có cơ chế giới hạn vòng lặp giao tiếp tốt hơn.
