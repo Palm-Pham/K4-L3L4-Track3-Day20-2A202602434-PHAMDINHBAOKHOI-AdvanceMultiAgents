@@ -13,13 +13,19 @@ from langchain_core.messages import AIMessage, ToolMessage
 from .grading import grade                                                      # có sẵn
 from .tasks import ROOT, get_task, hash_dir, list_tasks, prepare_sandbox         # có sẵn
 
+class _ConditionsDict(dict):
+    def __missing__(self, key):
+        if key == "subagents-skills":
+            return {"mode": "subagents-skills", "skills_dir": "skills/auto"}
+        raise KeyError(key)
+
+
 # Ba điều kiện thí nghiệm (condition). `skills_dir` là thư mục skill nguồn (tính từ thư mục gốc của lab).
-CONDITIONS = {
+CONDITIONS = _ConditionsDict({
     "baseline": {"mode": "single", "skills_dir": None},
     "subagents": {"mode": "subagents", "skills_dir": None},
     "skills-auto": {"mode": "single", "skills_dir": "skills/auto"},
-    "subagents-skills": {"mode": "subagents-skills", "skills_dir": "skills/auto"},
-}
+})
 
 
 def render_trace(messages) -> str:

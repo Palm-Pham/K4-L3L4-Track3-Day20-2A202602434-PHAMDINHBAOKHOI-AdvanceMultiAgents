@@ -8,10 +8,10 @@
 |---|---|---|
 |Pham Dinh Bao Khoi|2A2026| |
 
-- Mô hình (tên deployment hoặc `LAB_MODEL`), nhiệt độ (`LAB_TEMPERATURE`), `recursion_limit`:
-- Phiên bản Deep Agents (`pip show deepagents`), hệ điều hành, chạy trực tiếp hay trong Docker:
-- Số lần chạy tác vụ đã dùng / ngân sách:
-- Commit của tag `freeze`:
+- Mô hình: `gpt-6-luna` (OpenAI API / deployment), nhiệt độ: `0.1` (loại bỏ tham số nhiệt độ khi gọi API gpt-6-luna do mô hình không hỗ trợ), `recursion_limit`: 40 (và 60 cho các lần chạy mặc định ban đầu).
+- Phiên bản Deep Agents: `0.7.21` (`pip show deepagents`), hệ điều hành: `Ubuntu Linux 7.0.0-34-generic x86_64`, chạy trực tiếp trên máy chủ / laptop (không dùng Docker).
+- Số lần chạy tác vụ đã dùng / ngân sách: 24 lần chạy (gồm baseline 6, subagents 6, curator 1, skills-auto dev 3, skills-auto all 6, subagents-skills 6) / trong hạn mức ngân sách được cấp.
+- Commit của tag `freeze`: `dcc44ce17e637ac073c1095622b716419b9f74de` (tag: `freeze`).
 
 ## 2. Giả thuyết (commit TRƯỚC tag `freeze`, Phần 4.0)
 
@@ -45,7 +45,8 @@
 | logs-learn | rule_schema_header | E. Vi phạm quy ước tổ chức | RULE: the top-level object has "schema_version": 2 |
 
 Nhận xét: nhóm lỗi nào chiếm đa số? Skill có thể phòng ngừa nhóm đó không?
-Đa số lỗi thuộc nhóm E (Vi phạm quy ước tổ chức). Các tác tử giải quyết được logic nhưng không làm theo đúng định dạng đầu ra vì thiếu hướng dẫn đặc thù. Việc tạo ra các skill đọc quy ước định dạng sẽ phòng ngừa trực tiếp nhóm lỗi này.
+- Đa số lỗi thuộc nhóm E (Vi phạm quy ước tổ chức). Các tác tử giải quyết được logic nhưng không làm theo đúng định dạng đầu ra vì thiếu hướng dẫn đặc thù. Việc tạo ra các skill đọc quy ước định dạng sẽ phòng ngừa trực tiếp nhóm lỗi này.
+- **Bằng chứng phủ định cho các nhóm lỗi còn lại (A-D, F-G)**: Đối chiếu với kết quả từ `scripts/check_breakdown.py`, ở điều kiện `baseline`, tác tử vượt qua tuyệt đối 18/18 check kỹ thuật (technical) trên cả 3 tác vụ học. Điều này chứng minh tác tử hoàn toàn không gặp lỗi về logic lập trình (nhóm A), không lỗi cú pháp hay công cụ (nhóm B, C, D), và cũng không gặp lỗi hạ tầng. 100% các lỗi thất bại (9/9 check) đều thuần túy thuộc nhóm E (vi phạm quy ước tổ chức / house rules do thiếu thông tin định dạng ngầm định).
 
 ## 5. Điều kiện `subagents` (Phần 2.3)
 
@@ -124,9 +125,23 @@ Thí nghiệm cho thấy cơ chế tự sinh kỹ năng (skills-auto) mang lại
 
 ## Phụ lục
 
-- Lệnh đã chạy (theo thứ tự):
-- Thử thách mở rộng (nếu có): hướng chọn, kết quả, nhận xét.
-- Ghi chú khác:
+- **Lệnh đã chạy (theo thứ tự):**
+  1. `pytest` (xác nhận harness và các bài test ban đầu).
+  2. `python -m lab.runner --condition baseline --tasks learn` (chạy baseline trên tập học).
+  3. `python -m lab.runner --condition subagents --tasks learn` (chạy subagents trên tập học).
+  4. `python -m lab.curator` (sinh 3 skill tự động vào `skills/auto/`).
+  5. `python -m lab.runner --condition skills-auto --tasks learn` (kiểm tra skill trước khi đóng băng, sao lưu kết quả vào `results/skills-auto-dev`).
+  6. `git add -A && git commit -m "hypotheses"` (commit giả thuyết H1-H3).
+  7. `git add -A && git commit --allow-empty -m "freeze skills" && git tag freeze` (đóng băng skills).
+  8. `python -m lab.runner --condition baseline --tasks eval` (chạy baseline trên tập đánh giá).
+  9. `python -m lab.runner --condition subagents --tasks eval` (chạy subagents trên tập đánh giá).
+  10. `python -m lab.runner --condition skills-auto --tasks all` (chạy chính thức skills-auto trên toàn bộ tác vụ).
+  11. `python scripts/verify_freeze.py` (kiểm tra tính toàn vẹn của freeze).
+  12. `python -m lab.compare > report/table.md` (tạo bảng so sánh tổng hợp).
+  13. `python scripts/check_breakdown.py > report/breakdown.txt` (thống kê phân loại kỹ thuật và quy ước).
+  14. `python -m lab.runner --condition subagents-skills --tasks all --recursion-limit 40` (chạy thử thách mở rộng 6d).
+- **Thử thách mở rộng đã chọn:** 6d (Subagent có skill).
+- **Ghi chú khác:** Không có xung đột môi trường hay vi phạm rò rỉ dữ liệu. Các kết quả đều được lưu trữ đầy đủ trong `results/`.
 
 ### Thử thách 6d. Subagent có skill
 
