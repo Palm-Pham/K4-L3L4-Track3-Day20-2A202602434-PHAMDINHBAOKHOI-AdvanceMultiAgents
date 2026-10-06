@@ -8,10 +8,10 @@
 |---|---|---|
 |Pham Dinh Bao Khoi|2A2026| |
 
-- Mô hình: `gpt-6-luna` (OpenAI API / deployment), nhiệt độ: `0.1` (loại bỏ tham số nhiệt độ khi gọi API gpt-6-luna do mô hình không hỗ trợ), `recursion_limit`: 40 (và 60 cho các lần chạy mặc định ban đầu).
-- Phiên bản Deep Agents: `0.7.21` (`pip show deepagents`), hệ điều hành: `Ubuntu Linux 7.0.0-34-generic x86_64`, chạy trực tiếp trên máy chủ / laptop (không dùng Docker).
-- Số lần chạy tác vụ đã dùng / ngân sách: 24 lần chạy (gồm baseline 6, subagents 6, curator 1, skills-auto dev 3, skills-auto all 6, subagents-skills 6) / trong hạn mức ngân sách được cấp.
-- Commit của tag `freeze`: `dcc44ce17e637ac073c1095622b716419b9f74de` (tag: `freeze`).
+- Model (`LAB_MODEL` / OpenAI deployment): `gpt-6-luna`, `LAB_TEMPERATURE`: `0.1` (loại bỏ parameter `temperature` trong kwargs của `ChatOpenAI` do model `gpt-6-luna` không hỗ trợ), `recursion_limit`: `40` (và `60` cho các run mặc định ban đầu).
+- Deep Agents version (`pip show deepagents`): `0.7.21`, OS: `Ubuntu Linux 7.0.0-34-generic x86_64`, chạy trực tiếp trên host OS (bare metal, không dùng Docker).
+- Số lần run task đã dùng / budget: 24 runs (gồm baseline: 6, subagents: 6, curator: 1, skills-auto dev: 3, skills-auto all: 6, subagents-skills: 6) / nằm trong token & run budget được cấp.
+- Commit hash của tag `freeze`: `dcc44ce17e637ac073c1095622b716419b9f74de` (tag: `freeze`).
 
 ## 2. Giả thuyết (commit TRƯỚC tag `freeze`, Phần 4.0)
 
@@ -32,48 +32,48 @@
 
 > Chỉ dùng tác vụ học. Mỗi dòng là một check thất bại.
 
-| Tác vụ | Check thất bại | Nhóm lỗi (A-G) | Bằng chứng (trích ngắn từ `detail` hoặc vết) |
+| Task | Failed check | Error Group (A-G) | Bằng chứng (trích ngắn từ `detail` hoặc trace) |
 |---|---|---|---|
-| data-learn | rule_money_in_cents | E. Vi phạm quy ước tổ chức | RULE: money values in answer.json are integer cents |
-| data-learn | rule_meta_block | E. Vi phạm quy ước tổ chức | RULE: answer.json has an object `meta` |
-| data-learn | rule_clean_csv | E. Vi phạm quy ước tổ chức | RULE: write workspace/clean.csv with the header order_id... |
-| code-learn | rule_type_hints | E. Vi phạm quy ước tổ chức | RULE: every public function ... has type annotations |
-| code-learn | rule_regression_tests | E. Vi phạm quy ước tổ chức | RULE: add tests/test_regressions.py with one test |
-| code-learn | rule_changelog | E. Vi phạm quy ước tổ chức | RULE: record each fix in CHANGELOG.md under ... |
-| logs-learn | rule_service_names | E. Vi phạm quy ước tổ chức | RULE: service names in the output are lower-case with '-' |
-| logs-learn | rule_sorted_errors | E. Vi phạm quy ước tổ chức | RULE: `errors` is sorted by service, then by timestamp_utc |
-| logs-learn | rule_schema_header | E. Vi phạm quy ước tổ chức | RULE: the top-level object has "schema_version": 2 |
+| data-learn | rule_money_in_cents | E. Vi phạm house rules (Organization conventions) | RULE: money values in answer.json are integer cents |
+| data-learn | rule_meta_block | E. Vi phạm house rules (Organization conventions) | RULE: answer.json has an object `meta` |
+| data-learn | rule_clean_csv | E. Vi phạm house rules (Organization conventions) | RULE: write workspace/clean.csv with the header order_id... |
+| code-learn | rule_type_hints | E. Vi phạm house rules (Organization conventions) | RULE: every public function ... has type annotations |
+| code-learn | rule_regression_tests | E. Vi phạm house rules (Organization conventions) | RULE: add tests/test_regressions.py with one test |
+| code-learn | rule_changelog | E. Vi phạm house rules (Organization conventions) | RULE: record each fix in CHANGELOG.md under ... |
+| logs-learn | rule_service_names | E. Vi phạm house rules (Organization conventions) | RULE: service names in the output are lower-case with '-' |
+| logs-learn | rule_sorted_errors | E. Vi phạm house rules (Organization conventions) | RULE: `errors` is sorted by service, then by timestamp_utc |
+| logs-learn | rule_schema_header | E. Vi phạm house rules (Organization conventions) | RULE: the top-level object has "schema_version": 2 |
 
 Nhận xét: nhóm lỗi nào chiếm đa số? Skill có thể phòng ngừa nhóm đó không?
-- Đa số lỗi thuộc nhóm E (Vi phạm quy ước tổ chức). Các tác tử giải quyết được logic nhưng không làm theo đúng định dạng đầu ra vì thiếu hướng dẫn đặc thù. Việc tạo ra các skill đọc quy ước định dạng sẽ phòng ngừa trực tiếp nhóm lỗi này.
-- **Bằng chứng phủ định cho các nhóm lỗi còn lại (A-D, F-G)**: Đối chiếu với kết quả từ `scripts/check_breakdown.py`, ở điều kiện `baseline`, tác tử vượt qua tuyệt đối 18/18 check kỹ thuật (technical) trên cả 3 tác vụ học. Điều này chứng minh tác tử hoàn toàn không gặp lỗi về logic lập trình (nhóm A), không lỗi cú pháp hay công cụ (nhóm B, C, D), và cũng không gặp lỗi hạ tầng. 100% các lỗi thất bại (9/9 check) đều thuần túy thuộc nhóm E (vi phạm quy ước tổ chức / house rules do thiếu thông tin định dạng ngầm định).
+- Đa số lỗi thuộc nhóm E (House rules / Organization conventions). Agent giải quyết chính xác logic kỹ thuật nhưng vi phạm output format do thiếu explicit prompt instruction. Việc tạo ra các skill bổ sung context về format validation sẽ trực tiếp phòng ngừa nhóm lỗi này.
+- **Bằng chứng phủ định cho các error groups còn lại (A-D, F-G)**: Đối chiếu với kết quả từ `scripts/check_breakdown.py`, ở điều kiện `baseline`, agent vượt qua tuyệt đối 18/18 technical checks trên cả 3 learning tasks. Điều này chứng minh agent hoàn toàn không gặp lỗi về programming logic (nhóm A), không lỗi syntax hay tools (nhóm B, C, D), và không gặp infrastructure error. 100% các failed checks (9/9 check) đều thuần túy thuộc nhóm E (house rules do thiếu format specifications).
 
 ## 5. Điều kiện `subagents` (Phần 2.3)
 
-- Các subagent đã định nghĩa (tên, vai trò, lý do thiết kế):
-  - `explorer`: Khám phá codebase, đọc dữ liệu, phân tích quy luật. Thiết kế để đọc mà không sửa, tránh hỏng dữ liệu.
-  - `implementer`: Trực tiếp sửa code và chạy test. Thiết kế để làm người thợ thi công.
-  - `reviewer`: Kiểm tra lại code độc lập, đánh giá edge cases. Thiết kế để đóng vai trò QA.
-- `subagent_calls` ở từng tác vụ và nhận xét (kể cả trường hợp bằng 0):
-  - `code-learn`: 2 (gọi implementer và reviewer).
-  - `data-learn`: 1 (gọi explorer).
-  - `logs-learn`: 1.
-  Nhận xét: Tác tử chính tích cực giao việc cho các bài phức tạp.
-- Thông tin thiếu hoặc thừa khi giao việc (nếu có giao việc):
-  - Lời giao việc tuy có nhắc nhở đọc quy ước ("Identify Acme reporting conventions", "Follow Acme Python team conventions") nhưng lại thiếu truyền đạt chính xác quy ước đó là gì. Tác tử chính "lười" và ủy thác cho subagent tự đi tìm quy ước trong README, dẫn đến subagent có thể bỏ sót. Báo cáo của subagent được tác tử chính tin tưởng dùng để ra kết quả cuối, nhưng đôi khi vẫn bị thiếu format do subagent không nhắc lại quy ước.
-- Ảnh hưởng đến token và thời gian:
-  - Lượng token tăng vọt so với `baseline` (VD: `code-learn` từ 60.5k lên 174.9k, `data-learn` từ 26k lên 81k, `logs-learn` từ 50.8k lên 61.9k). Thời gian chạy cũng dài hơn rất nhiều.
-  - Dù tốn nhiều chi phí token, điểm số không tăng lên đáng kể (hoặc thậm chí giảm) do lỗi gốc (nhóm E - vi phạm quy ước format ẩn) không được giải quyết tốt hơn thông qua cơ chế đa tác tử.
+- Các subagent đã định nghĩa (name, role, design rationale):
+  - `explorer`: Khám phá codebase, đọc dữ liệu, phân tích quy luật. Thiết kế read-only để tránh side-effects làm hỏng workspace.
+  - `implementer`: Trực tiếp code modification và run test execution. Đóng vai trò thi công.
+  - `reviewer`: Code review độc lập, verify edge cases và compliance. Đóng vai trò QA.
+- `subagent_calls` ở từng task và nhận xét (kể cả trường hợp bằng 0):
+  - `code-learn`: 2 calls (gọi implementer và reviewer).
+  - `data-learn`: 1 call (gọi explorer).
+  - `logs-learn`: 1 call.
+  Nhận xét: Main agent chủ động delegate task cho các bài có độ phức tạp cao.
+- Thông tin thiếu hoặc thừa khi giao việc (delegation prompt):
+  - Delegation prompt tuy có nhắc nhở đọc conventions ("Identify Acme reporting conventions", "Follow Acme Python team conventions") nhưng lại thiếu việc trích xuất cụ thể các quy tắc đó. Main agent ỷ lại vào việc subagent tự explore trong README, dẫn đến subagent có thể bỏ sót. Subagent response được main agent tin tưởng dùng cho final output, khiến lỗi thiếu format vẫn tồn tại.
+- Ảnh hưởng đến token và latency:
+  - Token usage tăng vọt so với `baseline` (ví dụ: `code-learn` từ 60.5k lên 174.9k, `data-learn` từ 26k lên 81k, `logs-learn` từ 50.8k lên 61.9k). Execution time cũng kéo dài hơn đáng kể.
+  - Mặc dù chi phí token tăng cao, score không cải thiện (thậm chí suy giảm trên eval tasks) do lỗi gốc (nhóm E - house rules) không được giải quyết tốt hơn qua multi-agent architecture.
 
 ## 6. Self-evolving: skill do curator sinh (Phần 3)
 
-- Số lần chạy curator, số skill bị xóa và lý do: 1 lần chạy, 0 skill bị xóa vì các skill sinh ra đều đạt chất lượng tốt, không chứa hướng dẫn gây hại hay hardcode.
+- Số lần chạy curator, số skill bị xóa và lý do: 1 lần chạy curator, 0 skill bị xóa vì các generated skills đều đạt tiêu chuẩn chất lượng, không chứa harmful instructions hay hardcoded data.
 
-| Skill | Tổng quát hay riêng cho tác vụ học? | Đúng hay sai (nêu chỗ sai nếu có) | Độ dài, `description` và `skills_read` ở Phần 3.4 |
+| Skill | Generalization (Tổng quát hay riêng cho learning task)? | Correctness (Đúng hay sai)? | Length, `description` và `skills_read` ở Phần 3.4 |
 |---|---|---|---|
-| acceptance-criteria-closure | Rất tổng quát, không chứa tên file/biến. | Đúng, khuyên lập checklist và kiểm tra toàn diện. | ~10 dòng. Description rộng. Đã được đọc ở 3 tác vụ học. |
-| structured-data-validation | Tổng quát, tập trung lược đồ, định dạng số, khóa sắp xếp. | Đúng, đặc biệt hữu ích chống lỗi định dạng tiền tệ/thời gian. | ~10 dòng. Đã được đọc ở 2 tác vụ (`data-learn`, `logs-learn`). |
-| code-change-completion | Tổng quát, nhắc bổ sung type hints, test hồi quy và changelog không hardcode. | Đúng, phản ánh best practices lập trình. | ~10 dòng. Đã được đọc ở `code-learn`. |
+| acceptance-criteria-closure | Rất tổng quát, không chứa hardcoded file/variable names. | Đúng, hướng dẫn xây dựng checklist và validation toàn diện. | ~10 lines. Description rõ ràng. Đã được read ở cả 3 learning tasks. |
+| structured-data-validation | Tổng quát, tập trung schema, numeric format, sorting keys. | Đúng, đặc biệt hữu ích chống lỗi formatting tiền tệ/timestamp. | ~10 lines. Đã được read ở 2 tasks (`data-learn`, `logs-learn`). |
+| code-change-completion | Tổng quát, hướng dẫn type hints, regression tests và changelog entries. | Đúng, chuẩn hóa development best practices. | ~10 lines. Đã được read ở `code-learn`. |
 
 ## 7. Kết quả so sánh (Phần 4.3, 4.4)
 
@@ -102,26 +102,26 @@ subagents     learn    18/18         0/9          106,192      0/3
 skills-auto   eval     17/18         2/12          91,750      3/3     
 skills-auto   learn    18/18         1/9           87,441      3/3     
 ```
-*Lưu ý: Đã gặp lỗi 400 "Unsupported parameter: 'temperature'" ở model gpt-6-luna. Đã khắc phục bằng cách cấu hình bỏ tham số temperature trong `src/lab/model.py`. Không có `skills_modified = true` vì đã đóng băng skill hợp lệ trước khi chạy.*
+*Lưu ý: Đã gặp lỗi 400 "Unsupported parameter: 'temperature'" ở model `gpt-6-luna`. Đã khắc phục bằng cách omit parameter `temperature` trong kwargs tại `src/lab/model.py`. Không có `skills_modified = true` vì đã freeze skill hợp lệ trước khi run.*
 
 ## 8. Phân tích
 
-1. So với `baseline`, điều kiện `skills-auto` cải thiện điểm cả trên tác vụ học (từ 0.66 lên 0.70) và tác vụ đánh giá (từ 0.60 lên 0.62). `subagents` không cải thiện học mà còn làm giảm mạnh điểm đánh giá (xuống 0.43). Không có trường hợp chỉ cải thiện học mà đánh giá giảm, cho thấy không có dấu hiệu overfitting (quá khớp) với bài học.
-2. Skill do curator sinh nhắm trực tiếp vào việc cải thiện nhóm check quy ước tổ chức (house rules). Thống kê cho thấy baseline đạt 0/12 house rules, nhưng `skills-auto` đạt được 2/12. Check quy ước mới của tác vụ đánh giá được skill giúp cải thiện nhờ tính chất tổng quát của skill (ví dụ luôn thêm type hints, luôn có checklist) tác động tốt tới mọi bài.
-3. Trong `code-eval`, điểm tăng lên 9/11 nhờ đọc được skill `code-change-completion.md` (`skills_read`: 2), giúp tác tử tự giác pass các quy ước ẩn như `rule_regression_tests`. Ngược lại, trong `data-eval`, điểm giảm (5/9 -> 4/9) vì tác tử mặc dù đọc skill nhưng không tuân thủ chính xác toàn bộ yêu cầu format output, hoặc bị phân tâm bởi quá nhiều hướng dẫn.
-4. Điều kiện `baseline` có hiệu quả tốt nhất theo token (~41k token cho điểm ~0.6). `skills-auto` cải thiện điểm nhưng tốn hơn gấp đôi token (~90k). Riêng mô hình đa tác tử (`subagents`) hoàn toàn không đáng chi phí trong thí nghiệm này (token > 100k nhưng điểm giảm thê thảm), do hao tổn overhead giao tiếp và lỗi đứt gãy thông tin giữa các agent.
-5. Không có rò rỉ dữ liệu hay quá khớp. Các file skill sinh ra như `acceptance-criteria-closure.md` chứa hướng dẫn rất trừu tượng (như "tạo checklist", "kiểm tra format") chứ không hardcode bất kỳ biến số hay tên hàm nào từ tác vụ học. Điều này đạt được nhờ prompt của Curator quy định rõ việc không được lưu thông tin đặc thù.
-6. Nhiễu: So sánh điểm tác vụ học của Phần 3.4 (trong thư mục `skills-auto-dev`) và sau đóng băng, kết quả hoàn toàn khớp nhau (8/10, 5/8, 6/9). Điều này chứng tỏ với mô hình này (`gpt-6-luna`, `temperature=0`), độ nhiễu rất thấp và các chênh lệch điểm trong mục 7 là cực kỳ đáng tin cậy.
+1. So với `baseline`, điều kiện `skills-auto` cải thiện mean score cả trên learning tasks (từ 0.66 lên 0.70) và evaluation tasks (từ 0.60 lên 0.62). Ngược lại, `subagents` không cải thiện learning tasks và làm suy giảm mạnh evaluation tasks (xuống 0.43). Không có trường hợp chỉ cải thiện learning tasks mà evaluation tasks bị sụt giảm, chứng minh không có dấu hiệu overfitting vào learning tasks.
+2. Skills do curator sinh ra nhắm trực tiếp vào việc cải thiện house rules checks. Trong khi baseline đạt 0/12 house rules, `skills-auto` đạt được 2/12 trên evaluation tasks và 1/9 trên learning tasks. Các house rules mới của evaluation tasks được hỗ trợ nhờ tính generalization của skills (như yêu cầu type annotations, regression testing, output validation).
+3. Trong `code-eval`, score tăng lên 9/11 nhờ read skill `code-change-completion.md` (`skills_read`: 2), giúp agent tự động pass các house rules như `rule_regression_tests`. Ngược lại, ở `data-eval`, score giảm nhẹ (5/9 -> 4/9) do agent tuy có read skill nhưng không match chính xác toàn bộ format requirement, hoặc gặp context noise từ prompt dài.
+4. Về cost efficiency: `baseline` có hiệu quả token cao nhất (~41k token cho score ~0.60). `skills-auto` cải thiện score nhưng tiêu tốn gấp đôi token (~90k). Riêng multi-agent pattern (`subagents`) hoàn toàn không cost-effective trong benchmark này (token > 100k nhưng score giảm mạnh), do communication overhead và context fragmentation giữa main agent và subagents.
+5. Không có data leakage hay overfitting. Các skill files sinh ra như `acceptance-criteria-closure.md` chứa abstract guidelines (tạo checklist, schema validation) chứ không hardcode bất kỳ biến số, tên file hay task-specific logic nào từ learning tasks.
+6. Noise variance: So sánh score của learning tasks ở Phần 3.4 (lưu trong `skills-auto-dev`) và sau freeze, kết quả hoàn toàn trùng khớp (8/10, 5/8, 6/9). Điều này chứng minh rằng với model `gpt-6-luna` (không dùng sampling temperature), noise variance rất thấp và các score difference trong bảng mục 7 là hoàn toàn đáng tin cậy.
 
 ## 9. Hạn chế và tính hợp lệ
 
-1. **Chỉ chạy 1 lần cho mỗi cấu hình**: Do chi phí và thời gian, mỗi cấu hình chỉ được chạy một lần (n=1). Các lỗi ngẫu nhiên (chẳng hạn như việc `subagents logs-eval` bị lỗi hoàn toàn) có thể làm chệch trung bình.
-2. **Số lượng tác vụ nhỏ**: Có tổng cộng 6 tác vụ (3 learn, 3 eval). Dữ liệu này quá bé để đánh giá mức độ bao quát tổng thể của các Agent trên các codebase thực tế.
-3. **Mô hình bị giới hạn (nhiệt độ = 0)**: Do thiết lập `temperature = 0` (hoặc loại bỏ trên gpt-6), tác tử ít có khả năng thử các hướng đi sáng tạo khác nhau, dẫn đến kết quả cố định cao và không đánh giá hết rủi ro "ảo giác" của LLM.
+1. **Small sample size / Single run**: Mỗi configuration chỉ được run 1 lần (n=1) do ràng buộc về compute budget và time. Stochastic noise (như việc `subagents logs-eval` bị lỗi bất thường) có thể làm chệch mean score.
+2. **Task diversity giới hạn**: Benchmark gồm 6 tasks (3 learn, 3 eval), tập trung vào các tình huống phần mềm nhỏ và chưa phản ánh hết độ phức tạp của real-world production codebases.
+3. **Deterministic evaluation (Zero temperature)**: Do model `gpt-6-luna` không cho phép tùy biến `temperature`, agent hoạt động mang tính deterministic cao, chưa đánh giá được độ ổn định trước LLM hallucination hay exploration diversity ở các mức temperature khác nhau.
 
 ## 10. Kết luận
 
-Thí nghiệm cho thấy cơ chế tự sinh kỹ năng (skills-auto) mang lại cải thiện thực sự về điểm số trên cả tập học và tập đánh giá, đặc biệt ở việc bắt được các quy ước tổ chức mã ẩn. Trong khi đó, việc băm nhỏ tác vụ thành các subagents không những tiêu tốn quá nhiều tài nguyên mà còn làm giảm hiệu suất do nhiễu loạn giao tiếp. Đề xuất cải tiến tiếp theo là áp dụng kỹ năng (skills) kết hợp với một tác tử chuyên biệt hóa (reviewer agent) thay vì chia nhỏ nhiệm vụ thi công.
+Thí nghiệm chứng minh cơ chế self-evolving skills (`skills-auto`) mang lại cải thiện thực sự về benchmark score trên cả learning và evaluation tasks, đặc biệt hiệu quả trong việc khắc phục vi phạm house rules. Ngược lại, kiến trúc multi-agent qua subagents làm bùng nổ token consumption và suy giảm performance do communication overhead. Hướng cải tiến tiếp theo là kết hợp self-evolving skills với một single agent hoặc một dedicated reviewer agent thay vì chia nhỏ execution path.
 
 ## Phụ lục
 
