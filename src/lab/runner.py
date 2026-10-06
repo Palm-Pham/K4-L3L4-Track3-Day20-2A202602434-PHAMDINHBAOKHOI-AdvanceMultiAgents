@@ -18,6 +18,7 @@ CONDITIONS = {
     "baseline": {"mode": "single", "skills_dir": None},
     "subagents": {"mode": "subagents", "skills_dir": None},
     "skills-auto": {"mode": "single", "skills_dir": "skills/auto"},
+    "subagents-skills": {"mode": "subagents-skills", "skills_dir": "skills/auto"},
 }
 
 

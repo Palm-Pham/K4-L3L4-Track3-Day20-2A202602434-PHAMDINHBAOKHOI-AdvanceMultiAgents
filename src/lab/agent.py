@@ -52,17 +52,21 @@ def make_backend(sandbox: Path):
     )
 
 def build_agent(sandbox: Path, mode: str = "single", use_skills: bool = False, model=None):
-    if mode not in {"single", "subagents"}:
+    if mode not in {"single", "subagents", "subagents-skills"}:
         raise ValueError(f"Invalid mode: {mode}")
 
     kwargs = {}
     prompt = BASE_PROMPT
 
-    if mode == "subagents":
+    if mode in ("subagents", "subagents-skills"):
         kwargs["subagents"] = [
             {**sub, "system_prompt": sub["system_prompt"] + " " + PATHS_NOTE}
             for sub in get_subagents()
         ]
+        if mode == "subagents-skills":
+            for sub in kwargs["subagents"]:
+                sub["skills"] = ["/skills/"]
+                sub["system_prompt"] += " " + SKILLS_NOTE
         prompt = prompt + SUBAGENTS_NOTE
 
     if use_skills:
